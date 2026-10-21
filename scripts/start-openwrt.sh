@@ -49,7 +49,9 @@ chroot $ROOT /usr/sbin/nlbwmon </dev/null >/var/log/nlbwmon.log 2>&1 &
 
 # Tailscale & AdGuard Home (temporarily disabled, uncomment to enable)
 # chroot $ROOT sh -c 'TS_DEBUG_FIREWALL_MODE=iptables TS_NO_LOGS_NO_SUPPORT=true /usr/sbin/tailscaled --port 41641 --state /etc/tailscale/tailscaled.state </dev/null >/tmp/tailscaled.log 2>&1 &'
-# chroot $ROOT sh -c '/usr/bin/AdGuardHome -w /var/adguardhome </dev/null >/tmp/adguardhome.log 2>&1 &'
+# AdGuard Home (Network-wide Ad Blocking on port 5335 & Web UI on port 3000)
+mkdir -p $ROOT/var/adguardhome
+chroot $ROOT /usr/bin/AdGuardHome -c /etc/adguardhome/adguardhome.yaml -w /var/adguardhome --no-check-update </dev/null >/var/log/adguardhome.log 2>&1 &
 
 # Set Front Panel LED to Green (System Ready)
 echo none > /sys/class/leds/led_r/trigger 2>/dev/null
