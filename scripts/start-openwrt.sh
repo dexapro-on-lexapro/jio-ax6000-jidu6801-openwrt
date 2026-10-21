@@ -6,6 +6,11 @@ if netstat -tlpn 2>/dev/null | grep -q ":8888 "; then
     exit 0
 fi
 
+# Ensure USB Tethering kernel modules are loaded
+for mod in mii usbnet cdc_ether rndis_host ipheth; do
+    grep -q "^$mod " /proc/modules || insmod /proc/1/root/lib/modules/5.4.225/$mod.ko 2>/dev/null || true
+done
+
 mkdir -p $ROOT/proc $ROOT/sys $ROOT/dev $ROOT/dev/pts $ROOT/tmp $ROOT/tmp/lock $ROOT/tmp/run
 grep -q "$ROOT/proc" /proc/mounts || mount -t proc /proc $ROOT/proc
 grep -q "$ROOT/sys" /proc/mounts || mount -t sysfs /sys $ROOT/sys
@@ -47,7 +52,7 @@ echo 0 > /sys/class/leds/led_b/brightness 2>/dev/null
 echo default-on > /sys/class/leds/led_g/trigger 2>/dev/null
 echo 255 > /sys/class/leds/led_g/brightness 2>/dev/null
 
-logger -t openwrt-chroot "OpenWrt services started (LuCI :8888, SSH :2222, Green LED)"
+logger -t openwrt-chroot "OpenWrt services started (LuCI :8888, SSH :2222, Green LED, USB Tethering Drivers)"
 
 # Ensure Wi-Fi persistence
 (
