@@ -371,9 +371,26 @@ df -h /mnt /dev/ubi1_0
 
 ## 7. Web Management & Port Reference
 
-| Portal | URL / Command | Credentials |
+| Portal / Service | URL / Command | Purpose |
 | :--- | :--- | :--- |
-| **OpenWrt LuCI Web UI** | `http://192.168.31.1:8888` | User: `root` / Password: *(leave blank)* |
-| **OpenWrt SSH (chroot)** | `ssh -p 2222 root@192.168.31.1` | No password required / public key |
-| **Stock Jio Web GUI** | `http://192.168.31.1` | Stock admin credentials |
-| **Stock Host SSH** | Accessible via `chroot /proc/1/root` from port 2222 | Full host kernel access |
+| **OpenWrt LuCI Web UI** | `http://192.168.31.1/` and `:8888` | Primary router control panel (User: `root`, blank password) |
+| **Stock Host SSH** | `ssh root@192.168.31.1` (Port 22) | Stock Linux 5.4 host access |
+| **OpenWrt SSH (chroot)** | `ssh -p 2222 root@192.168.31.1` | OpenWrt 25.12 environment with `apk` package manager |
+| **AdGuard Home Admin** | `http://192.168.31.1:3000` | AdGuard Home DNS sinkhole dashboard |
+| **AdGuard Home DNS** | `192.168.31.1:5335` | Local upstream DNS resolver |
+| **Tailscale VPN** | Port 41641 / `tailscale status` | Mesh VPN daemon |
+| **Dynamic LED Status** | Front RGB LED Indicator | Real-time connection feedback (Red/Green/Purple/Blue) |
+
+---
+
+## 8. Cold-Boot Resolution Discoveries
+
+1. **`dnsmasq` Bind Conflict Resolution:**
+   - **Root Cause:** Procd passed hardcoded `-z` (`--bind-interfaces`) while OpenWrt defaulted `nonwildcard` to 1 (appending `--bind-dynamic`). Dnsmasq threw fatal error: `cannot set --bind-interfaces and --bind-dynamic`.
+   - **Fix:** `uci set dhcp.@dnsmasq[0].nonwildcard='0'; uci commit dhcp`.
+2. **LuCI Error 500 (`left-hand side expression is null`):**
+   - **Root Cause:** In OpenWrt userland, `/var` is a symlink to `/tmp`. When `/tmp` was mounted as a fresh tmpfs, `/var/run/ubus` was empty, causing `ubus call system board` to fail and template rendering to throw an unhandled exception.
+   - **Fix:** Mount `/var/run/ubus` from host to `/mnt/tmp/run/ubus`.
+3. **Multi-Daemon Chroot Process Launching:**
+   - **Root Cause:** `start-stop-daemon -x /usr/sbin/chroot` checked process binary name `chroot` and refused to launch subsequent daemons once `rpcd` was alive.
+   - **Fix:** Launch background daemons directly via `chroot $ROOT /path/to/binary [args] &`.

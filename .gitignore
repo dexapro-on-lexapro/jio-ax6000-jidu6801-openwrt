@@ -1,0 +1,10 @@
+backups/
+*.bin
+*.bin.gz
+*.tar.gz
+FLASH-TALLY.md
+UNIT1_*.md
+*.log
+recover_*.py
+fip_check.py
+bootloader_patches/
