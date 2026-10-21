@@ -37,9 +37,9 @@ WD
     grep -q "$ROOT/tmp" /proc/mounts || mount -t tmpfs -o size=32M tmpfs $ROOT/tmp
 
     # Create directories on tmpfs (/var -> /tmp)
-    mkdir -p $ROOT/tmp/lib/adguardhome $ROOT/tmp/lib/nlbwmon $ROOT/tmp/lib/tailscale
-    mkdir -p $ROOT/tmp/run/ubus $ROOT/tmp/run/tailscale $ROOT/tmp/adguardhome
-    mkdir -p $ROOT/etc/adguardhome $ROOT/etc/tailscale
+    mkdir -p $ROOT/tmp/lib/adguardhome $ROOT/tmp/lib/nlbwmon
+    mkdir -p $ROOT/tmp/run/ubus $ROOT/tmp/adguardhome
+    mkdir -p $ROOT/etc/adguardhome
     grep -q "$ROOT/tmp/run/ubus" /proc/mounts || mount --bind /var/run/ubus $ROOT/tmp/run/ubus 2>/dev/null || true
 
     # 4. Synchronize user credentials and configurations
@@ -60,7 +60,7 @@ WD
     ip link set dev br-lan address 00:11:22:33:44:56 2>/dev/null || true
     ip link set dev eth1 address 00:11:22:33:44:55 2>/dev/null || true
     iptables -I INPUT 1 -p tcp -m multiport --dports 22,2222,80,8888,3000,5335 -j ACCEPT 2>/dev/null || true
-    iptables -I INPUT 1 -p udp -m multiport --dports 53,67,5335,41641 -j ACCEPT 2>/dev/null || true
+    iptables -I INPUT 1 -p udp -m multiport --dports 53,67,5335 -j ACCEPT 2>/dev/null || true
 
     # 6. Ensure Stock Dropbear SSH is alive on Port 22
     if ! netstat -tlpn 2>/dev/null | grep -q ":22 "; then
@@ -94,9 +94,8 @@ WD
     pkill -f "$ROOT/usr/bin/AdGuardHome" 2>/dev/null || true
     chroot $ROOT /usr/bin/AdGuardHome -c /etc/adguardhome/adguardhome.yaml -w /var/lib/adguardhome --no-check-update >/dev/null 2>&1 &
 
-    # Tailscale VPN
-    pkill -f "$ROOT/usr/sbin/tailscaled" 2>/dev/null || true
-    chroot $ROOT /usr/sbin/tailscaled --port 41641 --state /etc/tailscale/tailscaled.state --socket /var/run/tailscale/tailscaled.sock >/dev/null 2>&1 &
+    # Tailscale VPN (disabled by user)
+    pkill -f "tailscaled" 2>/dev/null || true
 
     # 9. Bypass Plume lock and ensure both Wi-Fi APs are active
     sed -i 's/if \[ $plume_enable -eq 1 \]; then/if false; then/g' /sbin/wifi 2>/dev/null || true
@@ -110,7 +109,7 @@ WD
 
 stop() {
     pkill -f "$ROOT/usr/bin/AdGuardHome" 2>/dev/null || true
-    pkill -f "$ROOT/usr/sbin/tailscaled" 2>/dev/null || true
+    pkill -f "tailscaled" 2>/dev/null || true
     pkill -f "$ROOT/usr/sbin/nlbwmon" 2>/dev/null || true
     pkill -f "$ROOT.*dropbear.*2222" 2>/dev/null || true
     pkill -f "$ROOT.*uhttpd" 2>/dev/null || true
