@@ -9,12 +9,15 @@ boot() {
 }
 
 start() {
-    # 1. Neutralize vendor anti-tamper watchdog
+    # 1. Neutralize vendor anti-tamper watchdog & OpenSync
     cat << 'WD' > /sbin/jDeviceHealthCheck
 #!/bin/sh
 exit 0
 WD
     chmod +x /sbin/jDeviceHealthCheck
+    killall -9 dm wm sm qm nm cm fcm om bm vpnm fsm psm jm um ipmond 2>/dev/null || true
+    chmod -x /etc/init.d/opensync /etc/init.d/healthcheck 2>/dev/null || true
+    rm -f /etc/rc.d/S*opensync* /etc/rc.d/S*healthcheck* /etc/rc.d/S*plume* 2>/dev/null || true
 
     # 2. Ensure UBI1 OpenWrt volume is attached and mounted at /mnt
     mkdir -p /mnt
@@ -82,20 +85,24 @@ WD
     pkill -f "$ROOT.*dropbear.*2222" 2>/dev/null || true
     chroot $ROOT /usr/sbin/dropbear -F -p 2222 -R -B >/dev/null 2>&1 &
 
+    # Bandwidth Monitor (nlbwmon) with proper subnet accounting and memory buffer
+    sysctl -w net.core.rmem_max=1048576 >/dev/null 2>&1 || true
     pkill -f "$ROOT/usr/sbin/nlbwmon" 2>/dev/null || true
-    chroot $ROOT /usr/sbin/nlbwmon >/dev/null 2>&1 &
+    chroot $ROOT /usr/sbin/nlbwmon -o /var/lib/nlbwmon -p /usr/share/nlbwmon/protocols -s 192.168.31.0/24 -s 192.168.1.0/24 -s 192.168.0.0/16 -r 5s -i 10m >/dev/null 2>&1 &
 
+    # AdGuard Home
     pkill -f "$ROOT/usr/bin/AdGuardHome" 2>/dev/null || true
     chroot $ROOT /usr/bin/AdGuardHome -c /etc/adguardhome/adguardhome.yaml -w /var/lib/adguardhome --no-check-update >/dev/null 2>&1 &
 
+    # Tailscale VPN
     pkill -f "$ROOT/usr/sbin/tailscaled" 2>/dev/null || true
     chroot $ROOT /usr/sbin/tailscaled --port 41641 --state /etc/tailscale/tailscaled.state --socket /var/run/tailscale/tailscaled.sock >/dev/null 2>&1 &
 
     # 9. Bypass Plume lock and ensure both Wi-Fi APs are active
-    sed -i 's/if \[ \$plume_enable -eq 1 \]; then/if false; then/g' /sbin/wifi 2>/dev/null || true
+    sed -i 's/if \[ $plume_enable -eq 1 \]; then/if false; then/g' /sbin/wifi 2>/dev/null || true
     wifi up >/dev/null 2>&1 &
 
-    # 10. Restart DHCP server so LAN clients get leases
+    # 10. Restart DHCP server so LAN clients get leases and use AdGuard DNS
     /etc/init.d/dnsmasq restart 2>/dev/null || true
 
     logger -t openwrt "OpenWrt complete services started"
