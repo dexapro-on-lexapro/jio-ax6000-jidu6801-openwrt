@@ -25,6 +25,7 @@ grep -q "$ROOT/tmp/run/ubus" /proc/mounts || mount --bind /var/run/ubus $ROOT/tm
 cp -f /etc/config/wireless $ROOT/etc/config/wireless 2>/dev/null || true
 cp -f /etc/config/network $ROOT/etc/config/network 2>/dev/null || true
 cp -f /etc/config/system $ROOT/etc/config/system 2>/dev/null || true
+cp -f /etc/board.json $ROOT/etc/board.json 2>/dev/null || true
 cp -f $ROOT/usr/share/rpcd/acl.d/*.json /usr/share/rpcd/acl.d/ 2>/dev/null || true
 rm -rf $ROOT/tmp/luci-*
 
