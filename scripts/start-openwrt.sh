@@ -1,8 +1,8 @@
 #!/bin/sh
 ROOT="/mnt"
 
-# Prevent duplicate execution if already running on port 80 or 8888
-if netstat -tlpn 2>/dev/null | grep -q ":80 "; then
+# Prevent duplicate execution if OpenWrt is already running
+if ps | grep -v grep | grep -q "/mnt/usr/sbin/uhttpd"; then
     exit 0
 fi
 
