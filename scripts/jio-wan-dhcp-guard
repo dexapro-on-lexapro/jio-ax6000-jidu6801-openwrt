@@ -1,0 +1,66 @@
+#!/bin/sh /etc/rc.common
+START=16
+
+WAN_DEV="eth1"
+WAN_MAC="00:11:22:33:44:55"
+WAN_IP="192.168.1.100"
+WAN_NETMASK="255.255.255.0"
+WAN_GATEWAY="192.168.1.1"
+WAN_DNS="192.168.1.1 8.8.8.8"
+
+start() {
+	changed=0
+
+	if [ "$(uci -q get network.wan.proto)" != "static" ]; then
+		uci set network.wan.proto='static'
+		changed=1
+	fi
+
+	if [ "$(uci -q get network.wan.device)" != "$WAN_DEV" ]; then
+		uci set network.wan.device="$WAN_DEV"
+		changed=1
+	fi
+
+	if [ "$(uci -q get network.wan.ipaddr)" != "$WAN_IP" ]; then
+		uci set network.wan.ipaddr="$WAN_IP"
+		changed=1
+	fi
+
+	if [ "$(uci -q get network.wan.netmask)" != "$WAN_NETMASK" ]; then
+		uci set network.wan.netmask="$WAN_NETMASK"
+		changed=1
+	fi
+
+	if [ "$(uci -q get network.wan.gateway)" != "$WAN_GATEWAY" ]; then
+		uci set network.wan.gateway="$WAN_GATEWAY"
+		changed=1
+	fi
+
+	if [ "$(uci -q get network.wan.dns)" != "$WAN_DNS" ]; then
+		uci set network.wan.dns="$WAN_DNS"
+		changed=1
+	fi
+
+	if [ "$(uci -q get network.wan.macaddr)" != "$WAN_MAC" ]; then
+		uci set network.wan.macaddr="$WAN_MAC"
+		changed=1
+	fi
+
+	if [ "$(uci -q get network.eth1.macaddr)" != "$WAN_MAC" ]; then
+		uci set network.eth1.macaddr="$WAN_MAC"
+		changed=1
+	fi
+
+	if [ -n "$(uci -q get network.wan.ip6prefix)" ]; then
+		uci -q delete network.wan.ip6prefix
+		changed=1
+	fi
+
+	if [ "$changed" = "1" ]; then
+		uci commit network
+		logger -t jio-wan-guard "enforced static WAN (ip=$WAN_IP, gw=$WAN_GATEWAY, mac=$WAN_MAC)"
+	fi
+
+	ip link set dev "$WAN_DEV" address "$WAN_MAC" 2>/dev/null || true
+	return 0
+}

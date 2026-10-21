@@ -1,0 +1,30 @@
+#!/bin/sh /etc/rc.common
+START=99
+STOP=10
+
+boot() {
+    start
+}
+
+start() {
+    (
+        # Wait up to 60 seconds for openvswitch and opensync
+        for i in $(seq 1 60); do
+            if [ -S /tmp/run/hostapd/global ] || [ -f /tmp/run/hostapd-home-ap-24.config ]; then
+                break
+            fi
+            sleep 1
+        done
+        sleep 2
+
+        # Enforce live OVSDB config
+        ovsh u Wifi_VIF_Config -w if_name==home-ap-24 ssid:='MyHomeWiFi-2.4G' 'wpa_psks:=["map",[["key","YourSecretWiFiPassword"]]]' >/dev/null 2>&1
+        ovsh u Wifi_VIF_Config -w if_name==home-ap-50 ssid:='MyHomeWiFi-5G' 'wpa_psks:=["map",[["key","YourSecretWiFiPassword"]]]' >/dev/null 2>&1
+
+        # Also call wifimethods if available
+        ubus call wifimethods setApParams '{"APName":"PRIMARY_2G","SSID":"MyHomeWiFi-2.4G","KeyPassphrase":"YourSecretWiFiPassword"}' >/dev/null 2>&1
+        ubus call wifimethods setApParams '{"APName":"PRIMARY_5G","SSID":"MyHomeWiFi-5G","KeyPassphrase":"YourSecretWiFiPassword"}' >/dev/null 2>&1
+
+        logger -t jio-wifi-guard "Enforced SSIDs: MyHomeWiFi-2.4G and MyHomeWiFi-5G"
+    ) &
+}
