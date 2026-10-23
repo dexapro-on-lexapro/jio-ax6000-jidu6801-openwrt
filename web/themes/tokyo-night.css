@@ -1,0 +1,18 @@
+:root {
+  --jioWrtPrimary: #7aa2f7 !important;
+  --jioWrtPrimary1: #bb9af7 !important;
+  --jioWrtPrimary2: #7dcfff !important;
+  --jioWrtSecondary: #9ece6a !important;
+  --jioWrtSecondary1: #73daca !important;
+  --jioWrtSecondary2: #2ac3de !important;
+  --jioWrtPageBG: #1a1b26 !important;
+  --jioWrtSelectBG: #24283b !important;
+  --jioWrtBorder: #414868 !important;
+  --jioWrtFooterBG: #16161e !important;
+  --jioWrtFooterText: #c0caf5 !important;
+  --jioWrtWhite: #1f2335 !important;
+  --jioWrtText: #c0caf5 !important;
+  --jioModalBG: rgba(22,22,30,0.85) !important;
+  --jioWrtShadow: rgba(0,0,0,0.5) !important;
+}
+body, html, mainapp { background-color: #1a1b26 !important; color: #c0caf5 !important; }

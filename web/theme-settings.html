@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jio AX6000 - Theme Customizer</title>
+  <link href="/main.6efd2594.css" rel="stylesheet" />
+  <link id="active-theme-link" href="/themes/active-theme.css" rel="stylesheet" />
+  <style>
+    body {
+      background-color: var(--jioWrtPageBG);
+      color: var(--jioWrtText);
+      font-family: JioTypeLight, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .top-bar {
+      background-color: var(--jioWrtWhite);
+      border-bottom: 1px solid var(--jioWrtBorder);
+      padding: 14px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px var(--jioWrtShadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: JioTypeBold, sans-serif;
+      font-size: 20px;
+      color: var(--jioWrtPrimary);
+    }
+    .nav-links {
+      display: flex;
+      gap: 10px;
+    }
+    .nav-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-family: JioTypeMedium, sans-serif;
+      font-size: 14px;
+      color: var(--jioWrtText);
+      background: transparent;
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .nav-btn:hover {
+      background-color: var(--jioWrtPageBG);
+      color: var(--jioWrtPrimary);
+    }
+    .nav-btn.active {
+      background-color: var(--jioWrtPrimary);
+      color: #fff;
+    }
+    .container {
+      max-width: 980px;
+      margin: 32px auto;
+      padding: 0 24px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .card {
+      background-color: var(--jioWrtWhite);
+      border: 1px solid var(--jioWrtBorder);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px var(--jioWrtShadow);
+    }
+    .card-title {
+      font-family: JioTypeBold, sans-serif;
+      font-size: 22px;
+      color: var(--jioWrtPrimary);
+      margin-top: 0;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .subtitle {
+      font-size: 15px;
+      color: var(--jioWrtText);
+      opacity: 0.8;
+      margin-bottom: 24px;
+    }
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .theme-card {
+      background-color: var(--jioWrtPageBG);
+      border: 2px solid var(--jioWrtBorder);
+      border-radius: 14px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .theme-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px var(--jioWrtShadow);
+      border-color: var(--jioWrtPrimary);
+    }
+    .theme-card.active {
+      border-color: var(--jioWrtPrimary);
+      box-shadow: 0 0 0 2px var(--jioWrtPrimary);
+    }
+    .theme-card.active::after {
+      content: '✓ ACTIVE';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--jioWrtPrimary);
+      color: #fff;
+      font-size: 11px;
+      font-family: JioTypeBold, sans-serif;
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+    .theme-name {
+      font-family: JioTypeBold, sans-serif;
+      font-size: 18px;
+      color: var(--jioWrtText);
+      margin-bottom: 6px;
+    }
+    .theme-desc {
+      font-size: 13px;
+      color: var(--jioWrtText);
+      opacity: 0.7;
+      margin-bottom: 16px;
+    }
+    .swatches {
+      display: flex;
+      gap: 8px;
+    }
+    .swatch {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.15);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .toast {
+      padding: 14px 22px;
+      border-radius: 10px;
+      margin-top: 20px;
+      display: none;
+      font-family: JioTypeMedium, sans-serif;
+      animation: fadeIn 0.3s ease;
+    }
+    .toast-success { background: var(--jioWrtSuccessBG); color: var(--jioWrtSuccess); border: 1px solid var(--jioWrtSuccess); }
+    .toast-error { background: var(--jioWrtErrorBG); color: var(--jioWrtError); border: 1px solid var(--jioWrtError); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="brand">
+      <span>🎨</span> Jio AX6000 Theming
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-btn">🏠 Stock UI</a>
+      <a href="/wan-settings.html" class="nav-btn">🌐 WAN Setup</a>
+      <a href="/theme-settings.html" class="nav-btn active">🎨 Themes</a>
+      <a href="http://192.168.31.1:8888/" target="_blank" class="nav-btn">⚡ OpenWrt LuCI</a>
+      <a href="http://192.168.31.1:3000/" target="_blank" class="nav-btn">🛡️ AdGuard Home</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <div class="card-title">
+        <span>✨</span> Custom Interface Themes
+      </div>
+      <div class="subtitle">
+        Select a theme to customize the appearance of the entire stock web interface. Themes are applied instantaneously and saved to the router.
+      </div>
+
+      <div class="theme-grid" id="themeGrid">
+        <!-- Theme cards will be rendered dynamically -->
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+
+  <script>
+    const THEMES = [
+      {
+        id: 'classic',
+        name: 'Jio Classic Light',
+        desc: 'Default factory light clean theme',
+        colors: ['#0c5273', '#0078ad', '#1eccb0', '#f4f4f4']
+      },
+      {
+        id: 'catppuccin',
+        name: 'Catppuccin Mocha',
+        desc: 'Soothing modern dark pastel palette',
+        colors: ['#89b4fa', '#cba6f7', '#a6e3a1', '#1e1e2e']
+      },
+      {
+        id: 'dracula',
+        name: 'Dracula',
+        desc: 'Famous gothic violet & vibrant neon dark',
+        colors: ['#bd93f9', '#ff79c6', '#50fa7b', '#282a36']
+      },
+      {
+        id: 'nord',
+        name: 'Nord Frost',
+        desc: 'Arctic, north-bluish clean aesthetic',
+        colors: ['#88c0d0', '#81a1c1', '#a3be8c', '#2e3440']
+      },
+      {
+        id: 'tokyo-night',
+        name: 'Tokyo Night',
+        desc: 'Downtown Tokyo neon night city vibes',
+        colors: ['#7aa2f7', '#bb9af7', '#9ece6a', '#1a1b26']
+      },
+      {
+        id: 'one-dark',
+        name: 'One Dark Pro',
+        desc: 'Deep balanced graphite developer theme',
+        colors: ['#61afef', '#c678dd', '#98c379', '#21252b']
+      },
+      {
+        id: 'cyberpunk',
+        name: 'Cyberpunk 2077',
+        desc: 'High-contrast neon yellow & cyan on obsidian',
+        colors: ['#fcee0a', '#00f0ff', '#ff0055', '#0b0b12']
+      },
+      {
+        id: 'solarized-dark',
+        name: 'Solarized Dark',
+        desc: 'Precision cyan, blue and green dark palette',
+        colors: ['#268bd2', '#2aa198', '#859900', '#002b36']
+      }
+    ];
+
+    let currentActive = 'classic';
+
+    async function loadActiveTheme() {
+      try {
+        const res = await fetch('/cgi-bin/theme-api');
+        const data = await res.json();
+        if (data.active) {
+          currentActive = data.active;
+        }
+      } catch (e) {
+        currentActive = localStorage.getItem('jio_theme') || 'classic';
+      }
+      renderThemes();
+    }
+
+    function renderThemes() {
+      const grid = document.getElementById('themeGrid');
+      grid.innerHTML = '';
+
+      THEMES.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'theme-card' + (t.id === currentActive ? ' active' : '');
+        card.onclick = () => selectTheme(t.id);
+
+        const swatchesHtml = t.colors.map(c => `<div class="swatch" style="background: ${c};"></div>`).join('');
+
+        card.innerHTML = `
+          <div class="theme-name">${t.name}</div>
+          <div class="theme-desc">${t.desc}</div>
+          <div class="swatches">${swatchesHtml}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    async function selectTheme(themeId) {
+      currentActive = themeId;
+      renderThemes();
+
+      // Instant live preview
+      document.getElementById('active-theme-link').href = `/themes/${themeId}.css?t=` + Date.now();
+      localStorage.setItem('jio_theme', themeId);
+
+      const toast = document.getElementById('toast');
+      try {
+        const res = await fetch('/cgi-bin/theme-api', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ theme: themeId })
+        });
+        const resp = await res.json();
+        if (resp.status === 'OK') {
+          toast.className = 'toast toast-success';
+          toast.textContent = `✅ "${THEMES.find(x => x.id === themeId).name}" theme applied router-wide!`;
+          toast.style.display = 'block';
+        } else {
+          toast.className = 'toast toast-error';
+          toast.textContent = '❌ ' + resp.message;
+          toast.style.display = 'block';
+        }
+      } catch (err) {
+        toast.className = 'toast toast-error';
+        toast.textContent = '❌ Failed to save theme on router: ' + err.message;
+        toast.style.display = 'block';
+      }
+    }
+
+    loadActiveTheme();
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+:root {
+  --jioWrtPrimary: #0c5273;
+  --jioWrtPrimary1: #0078ad;
+  --jioWrtPrimary2: #67c3ef;
+  --jioWrtSecondary: #1eccb0;
+  --jioWrtSecondary1: #1e7b74;
+  --jioWrtSecondary2: #7aebd9;
+  --jioWrtPageBG: #f4f4f4;
+  --jioWrtSelectBG: #f4f4f4;
+  --jioWrtBorder: #b5b5b5;
+  --jioWrtFooterBG: #ebebeb;
+  --jioWrtFooterText: #252525;
+  --jioWrtWhite: #fefefe;
+  --jioWrtText: #666666;
+  --jioModalBG: rgba(37,37,37,0.5);
+  --jioWrtShadow: rgba(0,0,0,0.16);
+}

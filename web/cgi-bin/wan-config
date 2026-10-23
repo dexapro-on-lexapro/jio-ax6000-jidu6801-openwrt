@@ -1,0 +1,124 @@
+#!/usr/bin/lua
+local jsonc = require('luci.jsonc')
+local uci = require('luci.model.uci').cursor()
+local sys = require('luci.sys')
+
+io.write('Content-Type: application/json\r\n')
+io.write('Access-Control-Allow-Origin: *\r\n')
+io.write('Cache-Control: no-cache, no-store, must-revalidate\r\n\r\n')
+
+local method = os.getenv('REQUEST_METHOD') or 'GET'
+
+if method == 'GET' then
+    local proto = uci:get('network', 'wan', 'proto') or 'dhcp'
+    local ipaddr = uci:get('network', 'wan', 'ipaddr') or ''
+    local netmask = uci:get('network', 'wan', 'netmask') or ''
+    local gateway = uci:get('network', 'wan', 'gateway') or ''
+    local dns = uci:get('network', 'wan', 'dns') or ''
+    local username = uci:get('network', 'wan', 'username') or ''
+    local mtu = uci:get('network', 'wan', 'mtu') or ''
+    local macaddr = uci:get('network', 'wan', 'macaddr') or uci:get('network', 'eth1', 'macaddr') or ''
+    
+    local carrier = false
+    local f_carrier = io.open('/sys/class/net/eth1/carrier', 'r')
+    if f_carrier then
+        carrier = (f_carrier:read('*line') == '1')
+        f_carrier:close()
+    end
+    
+    local live_ip = ''
+    local handle = io.popen("ip -4 -o addr show dev eth1 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n1")
+    if handle then
+        live_ip = handle:read('*line') or ''
+        handle:close()
+    end
+    if live_ip == '' then
+        handle = io.popen("ip -4 -o addr show dev pppoe-wan 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n1")
+        if handle then
+            live_ip = handle:read('*line') or ''
+            handle:close()
+        end
+    end
+    
+    local live_mac = ''
+    local f_mac = io.open('/sys/class/net/eth1/address', 'r')
+    if f_mac then
+        live_mac = f_mac:read('*line') or ''
+        f_mac:close()
+    end
+
+    local rx_bytes = 0
+    local tx_bytes = 0
+    local f_rx = io.open('/sys/class/net/eth1/statistics/rx_bytes', 'r')
+    if f_rx then rx_bytes = tonumber(f_rx:read('*line') or 0); f_rx:close() end
+    local f_tx = io.open('/sys/class/net/eth1/statistics/tx_bytes', 'r')
+    if f_tx then tx_bytes = tonumber(f_tx:read('*line') or 0); f_tx:close() end
+
+    local resp = {
+        status = 'OK',
+        proto = proto,
+        ipaddr = ipaddr,
+        netmask = netmask,
+        gateway = gateway,
+        dns = dns,
+        username = username,
+        mtu = mtu,
+        macaddr = macaddr,
+        live_ip = live_ip,
+        live_mac = live_mac,
+        carrier = carrier,
+        rx_bytes = rx_bytes,
+        tx_bytes = tx_bytes
+    }
+    io.write(jsonc.stringify(resp, true))
+elseif method == 'POST' then
+    local content_length = tonumber(os.getenv('CONTENT_LENGTH') or 0)
+    local raw = io.read(content_length or '*a') or ''
+    local data = jsonc.parse(raw) or {}
+    
+    local proto = data.proto or 'dhcp'
+    uci:set('network', 'wan', 'proto', proto)
+    uci:set('network', 'wan', 'device', 'eth1')
+    
+    if proto == 'static' then
+        if data.ipaddr and data.ipaddr ~= '' then uci:set('network', 'wan', 'ipaddr', data.ipaddr) end
+        if data.netmask and data.netmask ~= '' then uci:set('network', 'wan', 'netmask', data.netmask) else uci:set('network', 'wan', 'netmask', '255.255.255.0') end
+        if data.gateway and data.gateway ~= '' then uci:set('network', 'wan', 'gateway', data.gateway) else uci:delete('network', 'wan', 'gateway') end
+        if data.dns and data.dns ~= '' then uci:set('network', 'wan', 'dns', data.dns) else uci:delete('network', 'wan', 'dns') end
+        uci:delete('network', 'wan', 'username')
+        uci:delete('network', 'wan', 'password')
+    elseif proto == 'dhcp' or proto == '464xlat' then
+        uci:delete('network', 'wan', 'ipaddr')
+        uci:delete('network', 'wan', 'netmask')
+        uci:delete('network', 'wan', 'gateway')
+        if data.dns and data.dns ~= '' then uci:set('network', 'wan', 'dns', data.dns) else uci:delete('network', 'wan', 'dns') end
+        uci:delete('network', 'wan', 'username')
+        uci:delete('network', 'wan', 'password')
+    elseif proto == 'pppoe' then
+        if data.username and data.username ~= '' then uci:set('network', 'wan', 'username', data.username) end
+        if data.password and data.password ~= '' then uci:set('network', 'wan', 'password', data.password) end
+        if data.mtu and data.mtu ~= '' then uci:set('network', 'wan', 'mtu', data.mtu) else uci:set('network', 'wan', 'mtu', '1492') end
+        uci:delete('network', 'wan', 'ipaddr')
+        uci:delete('network', 'wan', 'netmask')
+        uci:delete('network', 'wan', 'gateway')
+        if data.dns and data.dns ~= '' then uci:set('network', 'wan', 'dns', data.dns) else uci:delete('network', 'wan', 'dns') end
+    end
+    
+    if data.macaddr and data.macaddr ~= '' then
+        uci:set('network', 'wan', 'macaddr', data.macaddr)
+        uci:set('network', 'eth1', 'macaddr', data.macaddr)
+        os.execute('ip link set dev eth1 address ' .. data.macaddr .. ' 2>/dev/null || true')
+    end
+    
+    uci:commit('network')
+    os.execute('/etc/init.d/network reload >/dev/null 2>&1 &')
+    
+    local resp = {
+        status = 'OK',
+        message = 'WAN configuration saved and applied successfully.',
+        proto = proto
+    }
+    io.write(jsonc.stringify(resp, true))
+else
+    io.write(jsonc.stringify({status = 'ERROR', message = 'Method not allowed'}, true))
+end

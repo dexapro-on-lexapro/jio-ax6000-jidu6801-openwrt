@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jio AX6000 - WAN & Dual-Stack Setup</title>
+  <link href="/main.6efd2594.css" rel="stylesheet" />
+  <link id="active-theme-link" href="/themes/active-theme.css" rel="stylesheet" />
+  <style>
+    body {
+      background-color: var(--jioWrtPageBG);
+      color: var(--jioWrtText);
+      font-family: JioTypeLight, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .top-bar {
+      background-color: var(--jioWrtWhite);
+      border-bottom: 1px solid var(--jioWrtBorder);
+      padding: 14px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px var(--jioWrtShadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: JioTypeBold, sans-serif;
+      font-size: 20px;
+      color: var(--jioWrtPrimary);
+    }
+    .nav-links {
+      display: flex;
+      gap: 10px;
+    }
+    .nav-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-family: JioTypeMedium, sans-serif;
+      font-size: 14px;
+      color: var(--jioWrtText);
+      background: transparent;
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .nav-btn:hover {
+      background-color: var(--jioWrtPageBG);
+      color: var(--jioWrtPrimary);
+    }
+    .nav-btn.active {
+      background-color: var(--jioWrtPrimary);
+      color: #fff;
+    }
+    .container {
+      max-width: 980px;
+      margin: 32px auto;
+      padding: 0 24px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .card {
+      background-color: var(--jioWrtWhite);
+      border: 1px solid var(--jioWrtBorder);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px var(--jioWrtShadow);
+    }
+    .card-title {
+      font-family: JioTypeBold, sans-serif;
+      font-size: 22px;
+      color: var(--jioWrtPrimary);
+      margin-top: 0;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .status-item {
+      background: var(--jioWrtPageBG);
+      border-radius: 12px;
+      padding: 14px 18px;
+    }
+    .status-label {
+      font-size: 13px;
+      color: var(--jioWrtText);
+      opacity: 0.8;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .status-val {
+      font-family: JioTypeMedium, monospace;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--jioWrtPrimary);
+      word-break: break-all;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .badge-success { background-color: var(--jioWrtSuccessBG); color: var(--jioWrtSuccess); }
+    .badge-error { background-color: var(--jioWrtErrorBG); color: var(--jioWrtError); }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-label {
+      display: block;
+      font-family: JioTypeMedium, sans-serif;
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: var(--jioWrtText);
+    }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--jioWrtBorder);
+      background-color: var(--jioWrtSelectBG);
+      color: var(--jioWrtText);
+      font-family: inherit;
+      font-size: 15px;
+      box-sizing: border-box;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--jioWrtPrimary);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      .nav-links { flex-wrap: wrap; }
+      .top-bar { padding: 12px 16px; }
+    }
+    .btn-submit {
+      background-color: var(--jioWrtPrimary);
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      padding: 14px 32px;
+      font-family: JioTypeBold, sans-serif;
+      font-size: 15px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.2s;
+    }
+    .btn-submit:hover { opacity: 0.9; }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--jioWrtText);
+      border: 1px solid var(--jioWrtBorder);
+      border-radius: 24px;
+      padding: 14px 24px;
+      font-family: JioTypeMedium, sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      margin-left: 12px;
+    }
+    .toast {
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-top: 16px;
+      display: none;
+      font-family: JioTypeMedium, sans-serif;
+    }
+    .toast-success { background: var(--jioWrtSuccessBG); color: var(--jioWrtSuccess); border: 1px solid var(--jioWrtSuccess); }
+    .toast-error { background: var(--jioWrtErrorBG); color: var(--jioWrtError); border: 1px solid var(--jioWrtError); }
+    .hint { font-size: 13px; color: var(--jioWrtText); opacity: 0.7; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="brand">
+      <span>🌐</span> Jio AX6000 Configurator
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-btn">🏠 Stock UI</a>
+      <a href="/wan-settings.html" class="nav-btn active">🌐 WAN Setup</a>
+      <a href="/theme-settings.html" class="nav-btn">🎨 Themes</a>
+      <a href="http://192.168.31.1:8888/" target="_blank" class="nav-btn">⚡ OpenWrt LuCI</a>
+      <a href="http://192.168.31.1:3000/" target="_blank" class="nav-btn">🛡️ AdGuard Home</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Live Status Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>📡</span> Live WAN Status (eth1 2.5 GbE)
+      </div>
+      <div class="status-grid">
+        <div class="status-item">
+          <div class="status-label">Physical Link</div>
+          <div class="status-val" id="st-carrier">Checking...</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">Protocol</div>
+          <div class="status-val" id="st-proto">-</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">IPv4 Address</div>
+          <div class="status-val" id="st-ip">-</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">MAC Address</div>
+          <div class="status-val" id="st-mac">-</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">Gateway</div>
+          <div class="status-val" id="st-gw">-</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">Traffic (RX / TX)</div>
+          <div class="status-val" id="st-traffic">-</div>
+        </div>
+      </div>
+      <button class="btn-secondary" style="margin-left: 0; padding: 8px 16px; font-size: 13px;" onclick="fetchStatus()">🔄 Refresh Status</button>
+    </div>
+
+    <!-- Configuration Form Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>⚙️</span> WAN IPv4 & Dual-Stack Setup
+      </div>
+      <form id="wanForm" onsubmit="saveConfig(event)">
+        <div class="form-group">
+          <label class="form-label" for="proto">WAN Connection Protocol</label>
+          <select class="form-select" id="proto" onchange="updateFormFields()">
+            <option value="dhcp">Dynamic IP (DHCP - Auto from upstream ONT/Router)</option>
+            <option value="static">Static IP (Manual IP, Netmask, Gateway, DNS)</option>
+            <option value="pppoe">PPPoE (Fiber / DSL User Authentication)</option>
+            <option value="464xlat">Carrier 464xlat (IPv4 over IPv6 translation)</option>
+          </select>
+          <div class="hint">Select how this router connects to the internet via the 2.5 GbE WAN port.</div>
+        </div>
+
+        <!-- Static IP Fields -->
+        <div id="static-fields" style="display: none;">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="ipaddr">Static IPv4 Address</label>
+              <input type="text" class="form-input" id="ipaddr" placeholder="e.g. 192.168.1.100" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="netmask">Subnet Mask</label>
+              <input type="text" class="form-input" id="netmask" placeholder="255.255.255.0" value="255.255.255.0" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="gateway">Default Gateway</label>
+              <input type="text" class="form-input" id="gateway" placeholder="e.g. 192.168.1.1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="dns">DNS Servers (Space-separated)</label>
+              <input type="text" class="form-input" id="dns" placeholder="e.g. 1.1.1.1 8.8.8.8" />
+            </div>
+          </div>
+        </div>
+
+        <!-- PPPoE Fields -->
+        <div id="pppoe-fields" style="display: none;">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="username">PPPoE Username</label>
+              <input type="text" class="form-input" id="username" placeholder="ISP Username" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="password">PPPoE Password</label>
+              <input type="password" class="form-input" id="password" placeholder="ISP Password" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mtu">MTU Size</label>
+            <input type="number" class="form-input" id="mtu" placeholder="1492" value="1492" />
+            <div class="hint">Standard PPPoE MTU is 1492.</div>
+          </div>
+        </div>
+
+        <!-- DHCP Optional Custom DNS -->
+        <div id="dhcp-fields">
+          <div class="form-group">
+            <label class="form-label" for="dhcp-dns">Custom DNS Override (Optional)</label>
+            <input type="text" class="form-input" id="dhcp-dns" placeholder="Leave blank for ISP default, or e.g. 1.1.1.1 8.8.8.8" />
+          </div>
+        </div>
+
+        <!-- Advanced MAC Clone -->
+        <div class="form-group">
+          <label class="form-label" for="macaddr">WAN MAC Address Clone / Spoof (Optional)</label>
+          <input type="text" class="form-input" id="macaddr" placeholder="00:11:22:33:44:55" />
+          <div class="hint">Spoofs the hardware MAC on eth1. Useful if your ISP locks connections to a registered MAC.</div>
+        </div>
+
+        <div style="margin-top: 28px;">
+          <button type="submit" class="btn-submit" id="btnSave">💾 Save & Apply WAN Config</button>
+        </div>
+        <div class="toast" id="toast"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function formatBytes(bytes) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function updateFormFields() {
+      const proto = document.getElementById('proto').value;
+      document.getElementById('static-fields').style.display = (proto === 'static') ? 'block' : 'none';
+      document.getElementById('pppoe-fields').style.display = (proto === 'pppoe') ? 'block' : 'none';
+      document.getElementById('dhcp-fields').style.display = (proto === 'dhcp') ? 'block' : 'none';
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/cgi-bin/wan-config');
+        const data = await res.json();
+        
+        const elCarrier = document.getElementById('st-carrier');
+        if (data.carrier) {
+          elCarrier.innerHTML = '<span class="badge badge-success">CONNECTED</span>';
+        } else {
+          elCarrier.innerHTML = '<span class="badge badge-error">CABLE UNPLUGGED</span>';
+        }
+
+        document.getElementById('st-proto').textContent = (data.proto || 'dhcp').toUpperCase();
+        document.getElementById('st-ip').textContent = data.live_ip || data.ipaddr || 'Pending / Dynamic';
+        document.getElementById('st-mac').textContent = data.live_mac || data.macaddr || '-';
+        document.getElementById('st-gw').textContent = data.gateway || '-';
+        document.getElementById('st-traffic').textContent = formatBytes(data.rx_bytes) + ' / ' + formatBytes(data.tx_bytes);
+
+        if (!window.loadedOnce) {
+          document.getElementById('proto').value = data.proto || 'dhcp';
+          document.getElementById('ipaddr').value = data.ipaddr || '';
+          document.getElementById('netmask').value = data.netmask || '255.255.255.0';
+          document.getElementById('gateway').value = data.gateway || '';
+          document.getElementById('dns').value = data.dns || '';
+          document.getElementById('dhcp-dns').value = data.dns || '';
+          document.getElementById('username').value = data.username || '';
+          document.getElementById('mtu').value = data.mtu || '1492';
+          document.getElementById('macaddr').value = data.macaddr || '';
+          updateFormFields();
+          window.loadedOnce = true;
+        }
+      } catch (e) {
+        console.error('Failed to fetch WAN status', e);
+      }
+    }
+
+    async function saveConfig(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnSave');
+      const toast = document.getElementById('toast');
+      btn.disabled = true;
+      btn.textContent = '⏳ Applying Configuration...';
+      toast.style.display = 'none';
+
+      const proto = document.getElementById('proto').value;
+      const payload = {
+        proto: proto,
+        macaddr: document.getElementById('macaddr').value.trim()
+      };
+
+      if (proto === 'static') {
+        payload.ipaddr = document.getElementById('ipaddr').value.trim();
+        payload.netmask = document.getElementById('netmask').value.trim();
+        payload.gateway = document.getElementById('gateway').value.trim();
+        payload.dns = document.getElementById('dns').value.trim();
+      } else if (proto === 'pppoe') {
+        payload.username = document.getElementById('username').value.trim();
+        payload.password = document.getElementById('password').value.trim();
+        payload.mtu = document.getElementById('mtu').value.trim();
+      } else if (proto === 'dhcp') {
+        payload.dns = document.getElementById('dhcp-dns').value.trim();
+      }
+
+      try {
+        const res = await fetch('/cgi-bin/wan-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const resp = await res.json();
+        if (resp.status === 'OK') {
+          toast.className = 'toast toast-success';
+          toast.textContent = '✅ ' + resp.message;
+          toast.style.display = 'block';
+          setTimeout(fetchStatus, 2500);
+        } else {
+          toast.className = 'toast toast-error';
+          toast.textContent = '❌ Error: ' + (resp.message || 'Failed to apply configuration');
+          toast.style.display = 'block';
+        }
+      } catch (err) {
+        toast.className = 'toast toast-error';
+        toast.textContent = '❌ Network communication error: ' + err.message;
+        toast.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Save & Apply WAN Config';
+      }
+    }
+
+    fetchStatus();
+    setInterval(fetchStatus, 5000);
+  </script>
+</body>
+</html>

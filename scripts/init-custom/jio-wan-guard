@@ -1,0 +1,61 @@
+#!/bin/sh /etc/rc.common
+START=16
+STOP=90
+
+WAN_DEV="eth1"
+
+boot() {
+    start
+}
+
+start() {
+    proto=$(uci -q get network.wan.proto)
+    [ -z "$proto" ] && proto="dhcp"
+
+    changed=0
+
+    # Ensure device is eth1
+    if [ "$(uci -q get network.wan.device)" != "$WAN_DEV" ]; then
+        uci set network.wan.device="$WAN_DEV"
+        changed=1
+    fi
+
+    # Respect the configured protocol
+    if [ "$proto" = "static" ]; then
+        if [ -z "$(uci -q get network.wan.ipaddr)" ]; then
+            uci set network.wan.ipaddr='192.168.1.100'
+            changed=1
+        fi
+        if [ -z "$(uci -q get network.wan.netmask)" ]; then
+            uci set network.wan.netmask='255.255.255.0'
+            changed=1
+        fi
+        if [ -z "$(uci -q get network.wan.gateway)" ]; then
+            uci set network.wan.gateway='192.168.1.1'
+            changed=1
+        fi
+        logger -t jio-wan-guard "Preserving Static WAN: $(uci -q get network.wan.ipaddr) gw $(uci -q get network.wan.gateway)"
+    elif [ "$proto" = "pppoe" ]; then
+        logger -t jio-wan-guard "Preserving PPPoE WAN (user: $(uci -q get network.wan.username))"
+    elif [ "$proto" = "464xlat" ]; then
+        logger -t jio-wan-guard "Preserving 464xlat WAN"
+    else
+        if [ "$(uci -q get network.wan.proto)" != "dhcp" ]; then
+            uci set network.wan.proto='dhcp'
+            changed=1
+        fi
+        logger -t jio-wan-guard "Preserving Dynamic DHCP WAN"
+    fi
+
+    wan_mac=$(uci -q get network.wan.macaddr)
+    if [ -n "$wan_mac" ]; then
+        ip link set dev "$WAN_DEV" address "$wan_mac" 2>/dev/null || true
+    fi
+
+    if [ "$changed" = "1" ]; then
+        uci commit network
+    fi
+
+    ip link set dev "$WAN_DEV" up 2>/dev/null || true
+    return 0
+}

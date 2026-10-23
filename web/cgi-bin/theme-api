@@ -1,0 +1,51 @@
+#!/usr/bin/lua
+local jsonc = require('luci.jsonc')
+
+io.write('Content-Type: application/json\r\n')
+io.write('Access-Control-Allow-Origin: *\r\n')
+io.write('Cache-Control: no-cache, no-store, must-revalidate\r\n\r\n')
+
+local method = os.getenv('REQUEST_METHOD') or 'GET'
+
+if method == 'GET' then
+    local active = 'classic'
+    local f = io.open('/etc/jio_theme.conf', 'r')
+    if f then
+        active = f:read('*line') or 'classic'
+        f:close()
+    end
+    io.write(jsonc.stringify({status = 'OK', active = active}, true))
+elseif method == 'POST' then
+    local content_length = tonumber(os.getenv('CONTENT_LENGTH') or 0)
+    local raw = io.read(content_length or '*a') or ''
+    local data = jsonc.parse(raw) or {}
+    local theme = data.theme or 'classic'
+    
+    -- Sanitize theme name (alphanumeric and hyphens only)
+    theme = theme:gsub('[^%w%-]', '')
+    if theme == '' then theme = 'classic' end
+    
+    local src = '/www/themes/' .. theme .. '.css'
+    local dst = '/www/themes/active-theme.css'
+    
+    local f_src = io.open(src, 'r')
+    if f_src then
+        local css = f_src:read('*a')
+        f_src:close()
+        local f_dst = io.open(dst, 'w')
+        if f_dst then
+            f_dst:write(css)
+            f_dst:close()
+        end
+        local f_conf = io.open('/etc/jio_theme.conf', 'w')
+        if f_conf then
+            f_conf:write(theme .. '\n')
+            f_conf:close()
+        end
+        io.write(jsonc.stringify({status = 'OK', active = theme, message = 'Theme updated successfully'}, true))
+    else
+        io.write(jsonc.stringify({status = 'ERROR', message = 'Theme not found: ' .. theme}, true))
+    end
+else
+    io.write(jsonc.stringify({status = 'ERROR', message = 'Method not allowed'}, true))
+end
