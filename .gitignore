@@ -3,8 +3,11 @@ backups/
 *.bin.gz
 *.tar.gz
 FLASH-TALLY.md
+OTHER-UNITS-*.md
 UNIT1_*.md
 *.log
 recover_*.py
 fip_check.py
+mfg_read.py
 bootloader_patches/
+.DS_Store
