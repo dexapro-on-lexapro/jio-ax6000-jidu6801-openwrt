@@ -2,115 +2,20 @@
 START=95
 STOP=10
 
-ROOT="/mnt"
-
 boot() {
     start
 }
 
 start() {
-    # 1. Neutralize vendor anti-tamper watchdog & OpenSync
-    cat << 'WD' > /sbin/jDeviceHealthCheck
-#!/bin/sh
-exit 0
-WD
-    chmod +x /sbin/jDeviceHealthCheck
-    killall -9 dm wm sm qm nm cm fcm om bm vpnm fsm psm jm um ipmond 2>/dev/null || true
-    chmod -x /etc/init.d/opensync /etc/init.d/healthcheck 2>/dev/null || true
-    rm -f /etc/rc.d/S*opensync* /etc/rc.d/S*healthcheck* /etc/rc.d/S*plume* 2>/dev/null || true
-
-    # 2. Ensure UBI1 OpenWrt volume is attached and mounted at /mnt
-    mkdir -p /mnt
-    if ! grep -q " /mnt " /proc/mounts; then
-        ubiattach -m 6 /dev/ubi_ctrl 2>/dev/null || true
-        mount -t ubifs /dev/ubi1_0 /mnt 2>/dev/null || mount -t ubifs ubi1:openwrt /mnt 2>/dev/null || true
+    if [ -x /mnt/start-openwrt.sh ]; then
+        /mnt/start-openwrt.sh
     fi
-
-    [ -d "$ROOT/bin" ] || return 1
-
-    # 3. Mount kernel pseudo-filesystems into chroot
-    mkdir -p $ROOT/proc $ROOT/sys $ROOT/dev $ROOT/dev/pts $ROOT/tmp
-    grep -q "$ROOT/proc" /proc/mounts || mount -t proc /proc $ROOT/proc
-    grep -q "$ROOT/sys" /proc/mounts || mount -t sysfs /sys $ROOT/sys
-    grep -q "$ROOT/dev " /proc/mounts || mount --bind /dev $ROOT/dev
-    grep -q "$ROOT/dev/pts" /proc/mounts || mount -t devpts /dev/pts $ROOT/dev/pts
-    grep -q "$ROOT/tmp" /proc/mounts || mount -t tmpfs -o size=32M tmpfs $ROOT/tmp
-
-    # Create directories on tmpfs (/var -> /tmp)
-    mkdir -p $ROOT/tmp/lib/adguardhome $ROOT/tmp/lib/nlbwmon
-    mkdir -p $ROOT/tmp/run/ubus $ROOT/tmp/adguardhome
-    mkdir -p $ROOT/etc/adguardhome
-    grep -q "$ROOT/tmp/run/ubus" /proc/mounts || mount --bind /var/run/ubus $ROOT/tmp/run/ubus 2>/dev/null || true
-
-    # 4. Synchronize user credentials and configurations
-    cp -f /etc/passwd $ROOT/etc/passwd 2>/dev/null || true
-    cp -f /etc/shadow $ROOT/etc/shadow 2>/dev/null || true
-    cp -f /etc/group $ROOT/etc/group 2>/dev/null || true
-    cp -f /etc/config/wireless $ROOT/etc/config/wireless 2>/dev/null || true
-    cp -f /etc/config/network $ROOT/etc/config/network 2>/dev/null || true
-    cp -f /etc/config/system $ROOT/etc/config/system 2>/dev/null || true
-    cp -f /etc/config/dhcp $ROOT/etc/config/dhcp 2>/dev/null || true
-    cp -f /etc/board.json $ROOT/etc/board.json 2>/dev/null || true
-    cp -f $ROOT/usr/share/rpcd/acl.d/*.json /usr/share/rpcd/acl.d/ 2>/dev/null || true
-    rm -rf $ROOT/tmp/luci-*
-
-    # 5. Network & Firewall
-    ip addr add 192.168.31.1/24 dev br-lan 2>/dev/null || true
-    ip addr add 169.254.1.1/16 dev br-lan 2>/dev/null || true
-    ip link set dev br-lan address 00:11:22:33:44:56 2>/dev/null || true
-    ip link set dev eth1 address 00:11:22:33:44:55 2>/dev/null || true
-    iptables -I INPUT 1 -p tcp -m multiport --dports 22,2222,80,8888,3000,5335,8088,8443 -j ACCEPT 2>/dev/null || true
-    iptables -I INPUT 1 -p udp -m multiport --dports 53,67,5335 -j ACCEPT 2>/dev/null || true
-
-    # 6. Ensure Stock Dropbear SSH is alive on Port 22
-    if ! netstat -tlpn 2>/dev/null | grep -q ":22 "; then
-        /usr/sbin/dropbear -p 22 -R -B >/dev/null 2>&1 || true
-    fi
-
-    # 7. Liberate port 80 and start Stock Web UI on 8088/8443
-    /etc/init.d/uhttpd stop 2>/dev/null || true
-    /etc/init.d/rpcd stop 2>/dev/null || true
-    killall -9 uhttpd 2>/dev/null || true
-    killall -9 rpcd 2>/dev/null || true
-    sleep 1
-
-    # Start Stock uhttpd on port 8088 / 8443
-    /usr/sbin/uhttpd -f -h /www -r Jio-Router -x /cgi-bin -t 120 -T 60 -k 20 -A 1 -n 3 -N 100 -D -R -y /SET_CGI -y /GET_CGI -y /WCGI -p 0.0.0.0:8088 -C /etc/uhttpd.crt -K /etc/uhttpd.key -s 0.0.0.0:8443 >/dev/null 2>&1 &
-
-    # 8. Start OpenWrt chroot userland daemons with SIGHUP protection
-    pkill -f "$ROOT/sbin/rpcd" 2>/dev/null || true
-    chroot $ROOT /sbin/rpcd >/dev/null 2>&1 &
-    sleep 1
-
-    pkill -f "$ROOT.*uhttpd" 2>/dev/null || true
-    chroot $ROOT /usr/sbin/uhttpd -f -p 80 -p 8888 -h /www -u /ubus -x /cgi-bin >/dev/null 2>&1 &
-
-    pkill -f "$ROOT.*dropbear.*2222" 2>/dev/null || true
-    chroot $ROOT /usr/sbin/dropbear -F -p 2222 -R -B >/dev/null 2>&1 &
-
-    # Bandwidth Monitor (nlbwmon) with proper subnet accounting and memory buffer
-    sysctl -w net.core.rmem_max=1048576 >/dev/null 2>&1 || true
-    pkill -f "$ROOT/usr/sbin/nlbwmon" 2>/dev/null || true
-    chroot $ROOT /usr/sbin/nlbwmon -o /var/lib/nlbwmon -p /usr/share/nlbwmon/protocols -s 192.168.31.0/24 -s 192.168.1.0/24 -s 192.168.0.0/16 -r 5s -i 10m >/dev/null 2>&1 &
-
-    # AdGuard Home
-    pkill -f "$ROOT/usr/bin/AdGuardHome" 2>/dev/null || true
-    chroot $ROOT /usr/bin/AdGuardHome -c /etc/adguardhome/adguardhome.yaml -w /var/lib/adguardhome --no-check-update >/dev/null 2>&1 &
-
-    # 9. Bypass Plume lock and ensure both Wi-Fi APs are active
-    sed -i 's/if \[ $plume_enable -eq 1 \]; then/if false; then/g' /sbin/wifi 2>/dev/null || true
-    wifi up >/dev/null 2>&1 &
-
-    # 10. Restart DHCP server so LAN clients get leases and use AdGuard DNS
-    /etc/init.d/dnsmasq restart 2>/dev/null || true
-
-    logger -t openwrt "OpenWrt complete services started (Stock UI :8088, LuCI :80/:8888)"
 }
 
 stop() {
-    pkill -f "$ROOT/usr/bin/AdGuardHome" 2>/dev/null || true
-    pkill -f "$ROOT/usr/sbin/nlbwmon" 2>/dev/null || true
-    pkill -f "$ROOT.*dropbear.*2222" 2>/dev/null || true
-    pkill -f "$ROOT.*uhttpd" 2>/dev/null || true
-    pkill -f "$ROOT/sbin/rpcd" 2>/dev/null || true
+    pkill -f "/mnt/usr/bin/AdGuardHome" 2>/dev/null || true
+    pkill -f "/mnt/usr/sbin/nlbwmon" 2>/dev/null || true
+    pkill -f "/mnt.*dropbear.*2222" 2>/dev/null || true
+    pkill -f "/mnt.*uhttpd" 2>/dev/null || true
+    pkill -f "/mnt/sbin/rpcd" 2>/dev/null || true
 }

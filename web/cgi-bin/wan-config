@@ -111,7 +111,7 @@ elseif method == 'POST' then
     end
     
     uci:commit('network')
-    os.execute('/etc/init.d/network reload >/dev/null 2>&1 &')
+    os.execute('ifup wan >/dev/null 2>&1 &')
     
     local resp = {
         status = 'OK',
